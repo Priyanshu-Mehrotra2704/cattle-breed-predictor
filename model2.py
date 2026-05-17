@@ -1,15 +1,8 @@
 import os
 import kagglehub
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 import tensorflow as tf
-
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.models import Sequential
-
 from tensorflow.keras.models import load_model
-
 from tensorflow.keras.callbacks import (
     EarlyStopping,
     ModelCheckpoint,
@@ -26,21 +19,17 @@ path = os.path.join(path, 'cattle')
 print(f"Dataset path: {path}")
 
 # Image settings
-img_size = 224
-batch = 40
+img_size = 260
+batch = 16
 
-# Data augmentation
+# EfficientNet preprocessing
 datagen = ImageDataGenerator(
-    rescale=1./255,
+    preprocessing_function=tf.keras.applications.efficientnet.preprocess_input,
     validation_split=0.2,
 
-    rotation_range=20,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
-    shear_range=0.2,
-    zoom_range=0.2,
-    horizontal_flip=True,
-    fill_mode="nearest"
+    rotation_range=15,
+    zoom_range=0.1,
+    horizontal_flip=True
 )
 
 # Training data
@@ -65,47 +54,51 @@ val_data = datagen.flow_from_directory(
 
 print("Validation Images:", val_data.samples)
 
-# Visualize augmented images
-images, labels = next(train_data)
-
-for i in range(5):
-    plt.imshow(images[i])
-    plt.axis("off")
-    plt.show()
-
-# CNN Model
+# Load trained model
 model = load_model("final_cattle_model.h5")
 
-# Callbacks
+# Fine-tuning
+base_model = model.layers[0]
 
-# Stops training if validation loss doesn't improve
+base_model.trainable = True
+
+# Freeze most layers
+for layer in base_model.layers[:-30]:
+    layer.trainable = False
+
+# Compile again with VERY LOW learning rate
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5),
+
+    loss=tf.keras.losses.CategoricalCrossentropy(
+        label_smoothing=0.1
+    ),
+
+    metrics=['accuracy']
+)
+
+# Callbacks
 early_stop = EarlyStopping(
     monitor='val_loss',
     patience=5,
     restore_best_weights=True
 )
 
-# Saves best model automatically
 checkpoint = ModelCheckpoint(
-    "best_cattle_model.h5",
+    "best_finetuned_model.keras",
     monitor='val_accuracy',
     save_best_only=True,
     mode='max'
 )
 
-# Reduce learning rate automatically
 reduce_lr = ReduceLROnPlateau(
     monitor='val_loss',
     factor=0.2,
     patience=3,
-    min_lr=0.000001
-)
-model.compile(
-    loss='categorical_crossentropy',
-    optimizer='adam',
-    metrics=['accuracy']
+    min_lr=1e-7
 )
 
+# Fine-tune model
 history = model.fit(
     train_data,
     epochs=30,
@@ -117,11 +110,8 @@ history = model.fit(
     ]
 )
 
-# Model summary
-model.summary()
 # Save final model
-model.save("final_cattle_model.h5")
+model.save("final_finetuned_model.keras")
 
-
-
-
+# Summary
+model.summary()
