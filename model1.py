@@ -7,12 +7,15 @@ import tensorflow as tf
 
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Sequential
+from tensorflow.keras.applications import EfficientNetB2
 from tensorflow.keras.layers import (
     Dense,
     Dropout,
     Flatten,
     Conv2D,
-    MaxPooling2D
+    MaxPooling2D,
+    BatchNormalization,
+    GlobalAveragePooling2D
 )
 from tensorflow.keras.models import load_model
 
@@ -32,13 +35,13 @@ path = os.path.join(path, 'cattle')
 print(f"Dataset path: {path}")
 
 # Image settings
-img_size = 224
+img_size = 260
 batch = 40
 
 # Data augmentation
 datagen = ImageDataGenerator(
-    rescale=1./255,
     validation_split=0.2,
+    preprocessing_function=tf.keras.applications.efficientnet.preprocess_input,
 
     rotation_range=20,
     width_shift_range=0.2,
@@ -72,47 +75,34 @@ val_data = datagen.flow_from_directory(
 print("Validation Images:", val_data.samples)
 
 # Visualize augmented images
-images, labels = next(train_data)
+# images, labels = next(train_data)
 
-for i in range(5):
-    plt.imshow(images[i])
-    plt.axis("off")
-    plt.show()
+# for i in range(5):
+#     plt.imshow(images[i])
+#     plt.axis("off")
+#     plt.show()
 
 # CNN Model
-model = Sequential()
-
-model.add(Conv2D(32,kernel_size=(3,3),activation='relu',input_shape=(img_size, img_size, 3)))
-
-model.add(MaxPooling2D(pool_size=(2,2)))
-
-model.add(Conv2D(64,kernel_size=(3,3),activation='relu'))
-
-model.add(MaxPooling2D(pool_size=(2,2)))
-
-model.add(Conv2D(128,kernel_size=(3,3),activation='relu'))
-
-model.add(MaxPooling2D(pool_size=(2,2)))
-
-model.add(Conv2D(256,kernel_size=(3,3),activation='relu'))
-
-model.add(MaxPooling2D(pool_size=(2,2)))
-
-# Flatten
-model.add(Flatten())
-
-# Dense layers
-model.add(Dense(512, activation='relu'))
-
-model.add(Dropout(0.5))
-
-# Output layer
-model.add(Dense(50, activation='softmax'))
-
+base_model = EfficientNetB2(
+    weights='imagenet',
+    include_top=False,
+    input_shape=(img_size, img_size, 3)
+)
+base_model.trainable = False
+model = Sequential([
+    base_model,
+    
+    GlobalAveragePooling2D(),
+    Dense(256, activation='relu'),
+    BatchNormalization(),
+    Dropout(0.5),
+    Dense(train_data.num_classes, activation='softmax')
+])
+adam = tf.keras.optimizers.Adam(learning_rate=0.0001)
 # Compile model
 model.compile(
     loss='categorical_crossentropy',
-    optimizer='adam',
+    optimizer=adam,
     metrics=['accuracy']
 )
 
@@ -158,7 +148,7 @@ model.summary()
 
 # Save final model
 model.save("final_cattle_model.h5")
-model.save_weights("final_cattle_weights.h5")
+
 
 
 
