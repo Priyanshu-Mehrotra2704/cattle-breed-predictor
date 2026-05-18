@@ -35,12 +35,12 @@ path = os.path.join(path, 'cattle')
 print(f"Dataset path: {path}")
 
 # Image settings
-img_size = 260
+img_size = 300
 batch = 40
 
 # Data augmentation
 datagen = ImageDataGenerator(
-    validation_split=0.2,
+    validation_split=0.3,
     preprocessing_function=tf.keras.applications.efficientnet.preprocess_input,
 
     rotation_range=20,
