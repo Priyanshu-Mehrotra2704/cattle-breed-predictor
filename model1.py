@@ -36,7 +36,7 @@ print(f"Dataset path: {path}")
 
 # Image settings
 img_size = 300
-batch = 40
+batch = 16
 
 # Data augmentation
 datagen = ImageDataGenerator(
@@ -49,6 +49,7 @@ datagen = ImageDataGenerator(
     shear_range=0.2,
     zoom_range=0.2,
     horizontal_flip=True,
+    brightness_range=[0.8,1.2],
     fill_mode="nearest"
 )
 
@@ -93,15 +94,16 @@ model = Sequential([
     base_model,
     
     GlobalAveragePooling2D(),
-    Dense(256, activation='relu'),
+    Dense(128, activation='relu' kernel_regularizer=tf.keras.regularizers.l2(0.001)),
     BatchNormalization(),
-    Dropout(0.5),
+    Dropout(0.6),
     Dense(train_data.num_classes, activation='softmax')
 ])
-adam = tf.keras.optimizers.Adam(learning_rate=0.0001)
+adam = tf.keras.optimizers.Adam(learning_rate=0.00005)
+loss = tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.1)
 # Compile model
 model.compile(
-    loss='categorical_crossentropy',
+    loss=loss,
     optimizer=adam,
     metrics=['accuracy']
 )
