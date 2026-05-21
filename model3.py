@@ -24,6 +24,21 @@ from tensorflow.keras.callbacks import (
     ModelCheckpoint,
     ReduceLROnPlateau
 )
+gpus = tf.config.list_physical_devices('GPU')
+
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+
+        print("✅ GPU ENABLED")
+        print("GPU:", gpus)
+
+    except RuntimeError as e:
+        print(e)
+else:
+    print("❌ GPU NOT DETECTED")
+
 
 # Download dataset
 path = kagglehub.dataset_download(
@@ -36,19 +51,20 @@ print(f"Dataset path: {path}")
 
 # Image settings
 img_size = 300
-batch = 16
+batch = 32
 
 # Data augmentation
 datagen = ImageDataGenerator(
-    validation_split=0.3,
+    validation_split=0.1,
     preprocessing_function=tf.keras.applications.efficientnet.preprocess_input,
 
     rotation_range=20,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
-    shear_range=0.2,
-    zoom_range=0.2,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    shear_range=0.1,
+    zoom_range=0.1,
     horizontal_flip=True,
+    brightness_range=[0.8,1.2],
     fill_mode="nearest"
 )
 
@@ -93,15 +109,16 @@ model = Sequential([
     base_model,
     
     GlobalAveragePooling2D(),
-    Dense(256, activation='relu'),
+    Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001)),
     BatchNormalization(),
-    Dropout(0.5),
+    Dropout(0.6),
     Dense(train_data.num_classes, activation='softmax')
 ])
-adam = tf.keras.optimizers.Adam(learning_rate=0.0001)
+adam = tf.keras.optimizers.Adam(learning_rate=0.00005)
+loss = tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.1)
 # Compile model
 model.compile(
-    loss='categorical_crossentropy',
+    loss=loss,
     optimizer=adam,
     metrics=['accuracy']
 )

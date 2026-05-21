@@ -8,6 +8,7 @@ from tensorflow.keras.callbacks import (
     ModelCheckpoint,
     ReduceLROnPlateau
 )
+import matplotlib.pyplot as plt
 
 # Download dataset
 path = kagglehub.dataset_download(
@@ -19,13 +20,13 @@ path = os.path.join(path, 'cattle')
 print(f"Dataset path: {path}")
 
 # Image settings
-img_size = 260
+img_size = 300
 batch = 16
 
 # EfficientNet preprocessing
 datagen = ImageDataGenerator(
     preprocessing_function=tf.keras.applications.efficientnet.preprocess_input,
-    validation_split=0.2,
+    validation_split=0.1,
 
     rotation_range=15,
     zoom_range=0.1,
@@ -101,7 +102,7 @@ reduce_lr = ReduceLROnPlateau(
 # Fine-tune model
 history = model.fit(
     train_data,
-    epochs=30,
+    epochs=80,
     validation_data=val_data,
     callbacks=[
         early_stop,
@@ -115,3 +116,52 @@ model.save("final_finetuned_model.keras")
 
 # Summary
 model.summary()
+
+plt.figure(figsize=(10,5))
+
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+
+plt.title("Model Accuracy")
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+
+plt.legend(['Train', 'Validation'])
+
+plt.show()
+
+
+# =========================================================
+# LOSS GRAPH
+# =========================================================
+
+plt.figure(figsize=(10,5))
+
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+
+plt.title("Model Loss")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+
+plt.legend(['Train', 'Validation'])
+
+plt.show()
+
+
+# =========================================================
+# TOP-3 ACCURACY GRAPH
+# =========================================================
+
+plt.figure(figsize=(10,5))
+
+plt.plot(history.history['top_k_categorical_accuracy'])
+plt.plot(history.history['val_top_k_categorical_accuracy'])
+
+plt.title("Top-3 Accuracy")
+plt.xlabel("Epoch")
+plt.ylabel("Top-3 Accuracy")
+
+plt.legend(['Train', 'Validation'])
+
+plt.show()
