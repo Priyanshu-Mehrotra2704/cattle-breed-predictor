@@ -7,7 +7,7 @@ import tensorflow as tf
 
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.applications import EfficientNetB2
+from tensorflow.keras.applications import EfficientNetB3
 from tensorflow.keras.layers import (
     Dense,
     Dropout,
@@ -50,7 +50,7 @@ path = os.path.join(path, 'cattle')
 print(f"Dataset path: {path}")
 
 # Image settings
-img_size = 300
+img_size = 600
 batch = 32
 
 # Data augmentation
@@ -99,7 +99,7 @@ print("Validation Images:", val_data.samples)
 #     plt.show()
 
 # CNN Model
-base_model = EfficientNetB2(
+base_model = EfficientNetB3(
     weights='imagenet',
     include_top=False,
     input_shape=(img_size, img_size, 3)

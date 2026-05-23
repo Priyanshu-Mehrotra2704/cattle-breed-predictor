@@ -20,7 +20,7 @@ path = os.path.join(path, 'cattle')
 print(f"Dataset path: {path}")
 
 # Image settings
-img_size = 300
+img_size = 600
 batch = 16
 
 # EfficientNet preprocessing
@@ -28,9 +28,14 @@ datagen = ImageDataGenerator(
     preprocessing_function=tf.keras.applications.efficientnet.preprocess_input,
     validation_split=0.1,
 
-    rotation_range=15,
+    rotation_range=20,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    shear_range=0.1,
     zoom_range=0.1,
-    horizontal_flip=True
+    horizontal_flip=True,
+    brightness_range=[0.8,1.2],
+    fill_mode="nearest"
 )
 
 # Training data
@@ -56,7 +61,7 @@ val_data = datagen.flow_from_directory(
 print("Validation Images:", val_data.samples)
 
 # Load trained model
-model = load_model("final_cattle_model.h5")
+model = load_model("best_finetuned_model.keras")
 
 # Fine-tuning
 base_model = model.layers[0]
@@ -69,7 +74,7 @@ for layer in base_model.layers[:-30]:
 
 # Compile again with VERY LOW learning rate
 model.compile(
-    optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5),
+    optimizer=tf.keras.optimizers.Adam(learning_rate=5e-6),
 
     loss=tf.keras.losses.CategoricalCrossentropy(
         label_smoothing=0.1
